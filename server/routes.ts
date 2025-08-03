@@ -14,6 +14,29 @@ import { z } from "zod";
 const sseConnections = new Set<Response>();
 
 export async function registerRoutes(app: Express): Promise<Server> {
+	// Health check endpoint for database connectivity
+	app.get("/api/health", async (req, res) => {
+		try {
+			// Test database connection
+			const dbTest = await storage.getUserSettings();
+			
+			res.json({
+				status: "healthy",
+				database: "connected",
+				timestamp: new Date().toISOString(),
+				environment: process.env.NODE_ENV || "development"
+			});
+		} catch (error) {
+			console.error("Health check failed:", error);
+			res.status(500).json({
+				status: "unhealthy",
+				database: "disconnected",
+				error: error instanceof Error ? error.message : "Unknown error",
+				timestamp: new Date().toISOString()
+			});
+		}
+	});
+
 	// Server-Sent Events for real-time notifications
 	app.get("/api/events", (req, res) => {
 		res.writeHead(200, {

@@ -57,14 +57,56 @@ export class PostgreSQLStorage implements IStorage {
 			throw new Error("DATABASE_URL environment variable is required");
 		}
 
+		// Enhanced PostgreSQL configuration for Railway
 		const pool = new Pool({
 			connectionString: process.env.DATABASE_URL,
+			ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+			max: 20,
+			idleTimeoutMillis: 30000,
+			connectionTimeoutMillis: 2000,
+		});
+
+		// Add connection error handling
+		pool.on('error', (err) => {
+			console.error('Unexpected error on idle client', err);
 		});
 
 		this.db = drizzle(pool);
 
-		// Run manual migration to add status column if it doesn't exist
-		this.ensureStatusColumn();
+		// Test connection and run manual migration
+		this.initializeDatabase();
+	}
+
+	private async initializeDatabase() {
+		try {
+			console.log("🔄 Testing database connection...");
+			
+			// Test basic connection
+			const result = await this.db.execute(sql`SELECT NOW() as current_time`);
+			console.log("✅ Database connected successfully!");
+			
+			// Ensure status column exists
+			await this.ensureStatusColumn();
+			
+			// Ensure language column exists in user_settings
+			await this.ensureLanguageColumn();
+			
+		} catch (error) {
+			console.error("❌ Database initialization failed:", error);
+			throw error;
+		}
+	}
+
+	private async ensureLanguageColumn() {
+		try {
+			await this.db.execute(sql`
+				ALTER TABLE user_settings 
+				ADD COLUMN IF NOT EXISTS language text DEFAULT 'en'
+			`);
+			console.log("✅ Language column ensured in user_settings table");
+		} catch (error) {
+			console.log("Note: Language column may already exist:", error);
+		}
 	}
 
 	private async ensureStatusColumn() {
