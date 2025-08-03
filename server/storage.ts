@@ -57,18 +57,27 @@ export class PostgreSQLStorage implements IStorage {
 			throw new Error("DATABASE_URL environment variable is required");
 		}
 
+		// Debug: Log the DATABASE_URL (safely, without showing password)
+		const dbUrl = process.env.DATABASE_URL;
+		const safeUrl = dbUrl.replace(/:([^:@]+)@/, ":****@");
+		console.log("🔗 DATABASE_URL format:", safeUrl);
+		console.log("🌍 NODE_ENV:", process.env.NODE_ENV);
+
 		// Enhanced PostgreSQL configuration for Railway
 		const pool = new Pool({
 			connectionString: process.env.DATABASE_URL,
-			ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+			ssl:
+				process.env.NODE_ENV === "production"
+					? { rejectUnauthorized: false }
+					: false,
 			max: 20,
 			idleTimeoutMillis: 30000,
 			connectionTimeoutMillis: 2000,
 		});
 
 		// Add connection error handling
-		pool.on('error', (err) => {
-			console.error('Unexpected error on idle client', err);
+		pool.on("error", (err) => {
+			console.error("Unexpected error on idle client", err);
 		});
 
 		this.db = drizzle(pool);
@@ -80,20 +89,31 @@ export class PostgreSQLStorage implements IStorage {
 	private async initializeDatabase() {
 		try {
 			console.log("🔄 Testing database connection...");
-			
-			// Test basic connection
-			const result = await this.db.execute(sql`SELECT NOW() as current_time`);
+
+			// Test basic connection with timeout
+			const result = await Promise.race([
+				this.db.execute(sql`SELECT NOW() as current_time`),
+				new Promise((_, reject) =>
+					setTimeout(
+						() => reject(new Error("Database connection timeout")),
+						5000
+					)
+				),
+			]);
 			console.log("✅ Database connected successfully!");
-			
+
 			// Ensure status column exists
 			await this.ensureStatusColumn();
-			
+
 			// Ensure language column exists in user_settings
 			await this.ensureLanguageColumn();
-			
 		} catch (error) {
 			console.error("❌ Database initialization failed:", error);
-			throw error;
+			console.log("⚠️  App will continue running without database connection");
+			console.log(
+				"🔧 Please check your DATABASE_URL environment variable in Railway"
+			);
+			// Don't throw the error - let the app continue running
 		}
 	}
 

@@ -1,3 +1,5 @@
+<!-- @format -->
+
 # Railway PostgreSQL Setup Guide
 
 ## Step-by-Step Instructions:
@@ -13,12 +15,14 @@
 ### 2. Verify Environment Variables
 
 After adding PostgreSQL, Railway automatically sets:
+
 - `DATABASE_URL` - The connection string to your database
 - `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` - Individual connection details
 
 ### 3. Check Your Variables
 
 In Railway dashboard:
+
 1. Go to your StudyFlow project
 2. Click on the **"Variables"** tab
 3. Verify `DATABASE_URL` exists and looks like:
@@ -29,6 +33,7 @@ In Railway dashboard:
 ### 4. Redeploy Your Application
 
 After adding PostgreSQL:
+
 1. Railway will automatically redeploy your app
 2. Your app will connect to the database using the `DATABASE_URL`
 
@@ -37,12 +42,13 @@ After adding PostgreSQL:
 Visit your app's health endpoint: `https://your-app.railway.app/api/health`
 
 Expected response:
+
 ```json
 {
-  "status": "healthy",
-  "database": "connected",
-  "timestamp": "2025-08-04T...",
-  "environment": "production"
+	"status": "healthy",
+	"database": "connected",
+	"timestamp": "2025-08-04T...",
+	"environment": "production"
 }
 ```
 
@@ -51,6 +57,7 @@ Expected response:
 ### If you still get connection errors:
 
 1. **Check PostgreSQL Service Status:**
+
    - In Railway dashboard, ensure PostgreSQL service is "Active"
    - Check logs for any database errors
 
@@ -58,6 +65,7 @@ Expected response:
    Should be: `postgresql://username:password@host:port/database`
 
 3. **Check Application Logs:**
+
    - In Railway dashboard, check your app's deployment logs
    - Look for database connection messages
 
@@ -74,4 +82,5 @@ Expected response:
 - **Connection timeout**: Network issues or wrong host/port
 
 ## Contact Railway Support:
+
 If issues persist, contact Railway support with your project details.

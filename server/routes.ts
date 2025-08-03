@@ -19,20 +19,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 		try {
 			// Test database connection
 			const dbTest = await storage.getUserSettings();
-			
+
 			res.json({
 				status: "healthy",
 				database: "connected",
 				timestamp: new Date().toISOString(),
-				environment: process.env.NODE_ENV || "development"
+				environment: process.env.NODE_ENV || "development",
+				databaseUrl: process.env.DATABASE_URL ? "SET" : "NOT_SET",
 			});
 		} catch (error) {
 			console.error("Health check failed:", error);
+
+			const dbUrl = process.env.DATABASE_URL;
+			const safeUrl = dbUrl ? dbUrl.replace(/:([^:@]+)@/, ":****@") : "NOT_SET";
+
 			res.status(500).json({
 				status: "unhealthy",
 				database: "disconnected",
 				error: error instanceof Error ? error.message : "Unknown error",
-				timestamp: new Date().toISOString()
+				timestamp: new Date().toISOString(),
+				environment: process.env.NODE_ENV || "development",
+				databaseUrl: safeUrl,
 			});
 		}
 	});
