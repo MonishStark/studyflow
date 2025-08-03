@@ -46,7 +46,7 @@ app.use((req, res, next) => {
 	const server = await registerRoutes(app);
 
 	// Serve music files statically
-	const musicPath = path.resolve(import.meta.dirname, "..", "client", "music");
+	const musicPath = path.resolve(process.cwd(), "client", "music");
 	app.use("/music", express.static(musicPath));
 	console.log(`📁 Serving music files from: ${musicPath}`);
 
@@ -72,10 +72,11 @@ app.use((req, res, next) => {
 	// this serves both the API and the client.
 	// It is the only port that is not firewalled.
 	const port = parseInt(process.env.PORT || "5000", 10);
+	const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1";
 	server.listen(
 		{
 			port,
-			host: "127.0.0.1",
+			host,
 		},
 		() => {
 			log(`serving on port ${port}`);
