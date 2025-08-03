@@ -102,6 +102,9 @@ export class PostgreSQLStorage implements IStorage {
 			]);
 			console.log("✅ Database connected successfully!");
 
+			// Check if tables exist, if not create them
+			await this.ensureTablesExist();
+
 			// Ensure status column exists
 			await this.ensureStatusColumn();
 
@@ -114,6 +117,89 @@ export class PostgreSQLStorage implements IStorage {
 				"🔧 Please check your DATABASE_URL environment variable in Railway"
 			);
 			// Don't throw the error - let the app continue running
+		}
+	}
+
+	private async ensureTablesExist() {
+		try {
+			console.log("🔄 Checking if tables exist...");
+			
+			// Check if study_sessions table exists
+			const tablesResult = await this.db.execute(sql`
+				SELECT table_name 
+				FROM information_schema.tables 
+				WHERE table_schema = 'public' AND table_name IN ('study_sessions', 'session_progress', 'user_settings')
+			`);
+
+			const existingTables = tablesResult.rows.map((row: any) => row.table_name);
+			console.log("📋 Existing tables:", existingTables);
+
+			if (existingTables.length === 0) {
+				console.log("🏗️  No tables found, creating them...");
+				await this.createTables();
+			} else {
+				console.log("✅ Tables already exist");
+			}
+		} catch (error) {
+			console.error("❌ Error checking/creating tables:", error);
+		}
+	}
+
+	private async createTables() {
+		try {
+			// Create study_sessions table
+			await this.db.execute(sql`
+				CREATE TABLE IF NOT EXISTS "study_sessions" (
+					"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+					"subject" text NOT NULL,
+					"duration" integer NOT NULL,
+					"start_date" timestamp NOT NULL,
+					"end_date" timestamp NOT NULL,
+					"start_time" text NOT NULL,
+					"is_active" boolean DEFAULT false,
+					"is_completed" boolean DEFAULT false,
+					"completed_at" timestamp,
+					"created_at" timestamp DEFAULT now(),
+					"status" text DEFAULT 'active'
+				);
+			`);
+			console.log("✅ Created study_sessions table");
+
+			// Create session_progress table
+			await this.db.execute(sql`
+				CREATE TABLE IF NOT EXISTS "session_progress" (
+					"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+					"session_id" varchar,
+					"studied_minutes" integer DEFAULT 0,
+					"date" timestamp NOT NULL,
+					"created_at" timestamp DEFAULT now()
+				);
+			`);
+			console.log("✅ Created session_progress table");
+
+			// Create user_settings table
+			await this.db.execute(sql`
+				CREATE TABLE IF NOT EXISTS "user_settings" (
+					"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+					"music_volume" integer DEFAULT 60,
+					"selected_music_track" text DEFAULT 'nature-sounds',
+					"notifications_enabled" boolean DEFAULT true,
+					"created_at" timestamp DEFAULT now(),
+					"language" text DEFAULT 'en'
+				);
+			`);
+			console.log("✅ Created user_settings table");
+
+			// Add foreign key constraint
+			await this.db.execute(sql`
+				ALTER TABLE "session_progress" 
+				ADD CONSTRAINT IF NOT EXISTS "session_progress_session_id_study_sessions_id_fk" 
+				FOREIGN KEY ("session_id") REFERENCES "public"."study_sessions"("id") ON DELETE no action ON UPDATE no action;
+			`);
+			console.log("✅ Added foreign key constraints");
+
+		} catch (error) {
+			console.error("❌ Error creating tables:", error);
 		}
 	}
 

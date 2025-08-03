@@ -14,7 +14,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:setup": "node scripts/setup-db.js",
 		"vercel-build": "npm run build:client",
-		"postinstall": "npm run db:push || echo 'Database setup will be handled at runtime'"
+		"postinstall": "npm run db:push || echo 'Tables will be created at runtime if needed'"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^3.10.0",
